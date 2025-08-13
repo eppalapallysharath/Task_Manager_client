@@ -1,20 +1,40 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import axios from "axios";
+import { baseURL } from "../App";
 
 export default function Signup() {
-  const [form, setForm] = useState({ username: "", email: "", name: "", password: "" });
+  const [form, setForm] = useState({
+    username: "",
+    email: "",
+    name: "",
+    password: "",
+  });
   const navigate = useNavigate();
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.username || !form.email || !form.name || !form.password) {
       return toast.error("All fields are required");
     }
-    toast.success("Signup successful! Please login.");
-    navigate("/login");
+    try {
+      const result = await axios.post(`${baseURL}/auth/signup`, {
+        name: form.name,
+        email: form.email,
+        username: form.username,
+        password: form.password,
+      });
+      // console.log(result);
+      toast.success("Signup successful! Please login.");
+      navigate("/login");
+    } catch (error) {
+      console.log(error.response);
+      toast.error(error.response.data.message);
+    }
   };
 
   return (
@@ -63,7 +83,10 @@ export default function Signup() {
           Signup
         </button>
         <p className="mt-3 text-sm text-gray-500">
-          Already have an account? <a href="/login" className="text-blue-500">Login</a>
+          Already have an account?{" "}
+          <a href="/login" className="text-blue-500">
+            Login
+          </a>
         </p>
       </form>
     </div>

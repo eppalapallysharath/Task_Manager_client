@@ -1,8 +1,12 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import Logout from "../components/logout";
+import axios from "axios";
+import { baseURL } from "../App";
 
-export default function ManagerDashboard() {
+export default function ManagerDashboard({ setUser }) {
   const [tickets, setTickets] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -12,25 +16,65 @@ export default function ManagerDashboard() {
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.title || !form.description || !form.assignedTo) {
       return toast.error("All fields are required");
     }
-    setTickets([...tickets, { ...form, status: "To Do" }]);
-    setForm({ title: "", description: "", assignedTo: "" });
-    toast.success("Ticket created");
+    try {
+      const res = await axios.post(
+        `${baseURL}/ticket/create`,
+        {
+          title: form.title,
+          description: form.description,
+          assignTo: form.assignedTo,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      console.log(res);
+      toast.success(res.data.message);
+      getTasksList();
+    } catch (error) {
+      console.log(error);
+    }
   };
 
-  const employees = [
-    { id: "emp1", name: "John Doe" },
-    { id: "emp2", name: "Jane Smith" },
-    { id: "emp3", name: "Michael Johnson" },
-  ];
+  const token = localStorage.getItem("token");
+  const getEmpList = async () => {
+    try {
+      const res = await axios.get(`${baseURL}/ticket/getAllEmployees`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setEmployees(res.data.data);
+    } catch (error) {
+      console.log(error);
+      toast.error(error.response.data.message);
+    }
+  };
+  const getTasksList = async () => {
+    try {
+      const res = await axios.get(`${baseURL}/ticket/allTickets`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setTickets(res.data.data);
+      toast.success(res.data.data.message);
+    } catch (error) {
+      console.log(error);
+      toast.error("something went wrong unable to fetch tasks");
+    }
+  };
+  useEffect(() => {
+    getEmpList();
+    getTasksList();
+  }, []);
 
   return (
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-6">Manager Dashboard</h1>
+      <Link to="/profile">
+        <button className="btn btn-blue">ProfilePage </button>
+      </Link>
+      <Logout setUser={setUser} />
       <form
         onSubmit={handleSubmit}
         className="mb-6 bg-white p-4 rounded shadow"
@@ -59,7 +103,7 @@ export default function ManagerDashboard() {
         >
           <option value="">Select Employee</option>
           {employees.map((emp) => (
-            <option key={emp.id} value={emp.id}>
+            <option key={emp.id} value={emp._id}>
               {emp.name}
             </option>
           ))}
@@ -77,7 +121,9 @@ export default function ManagerDashboard() {
           <p>
             <strong>{t.title}</strong> — {t.description}
           </p>
-          <p className="text-sm text-gray-500">Assigned to: {t.assignedTo}</p>
+          <p className="text-sm text-gray-500">
+            Assigned to: {t.assignTo?.username}
+          </p>
         </div>
       ))}
     </div>

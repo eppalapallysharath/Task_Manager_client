@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import axios from "axios";
+import { baseURL } from "../App";
 
 export default function Login({ setUser }) {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -9,18 +11,35 @@ export default function Login({ setUser }) {
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     // Dummy auth logic
     if (!form.email || !form.password) {
       return toast.error("All fields are required");
     }
-
-    // Role assignment just for demo
-    const role = form.email.includes("manager") ? "manager" : "employee";
-    setUser({ email: form.email, role });
-    toast.success(`Logged in as ${role}`);
-    navigate(`/${role}`);
+    try {
+      const results = await axios.post(`${baseURL}/auth/login`, {
+        email: form.email,
+        password: form.password,
+      });
+      toast.success(results.data.message);
+      if (results?.data?.user.role === "employee") {
+        navigate("/employee");
+        setUser(results?.data?.user);
+        localStorage.setItem("user", JSON.stringify(results?.data?.user));
+        localStorage.setItem("token", results?.data?.token);
+      } else if (results?.data?.user.role === "manager") {
+        navigate("/manager");
+        setUser(results?.data?.user);
+        localStorage.setItem("user", JSON.stringify(results?.data?.user));
+        localStorage.setItem("token", results?.data?.token);
+      } else {
+        toast.error("something went wrong");
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error(error.response.data.message);
+    }
   };
 
   return (
